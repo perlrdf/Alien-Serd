@@ -1,0 +1,34 @@
+use alienfile;
+
+plugin PkgConfig => 'serd-0';
+
+share {
+  requires 'Alien::Build::Plugin::Gather::Dino';
+  requires 'Alien::Build::Plugin::Download::GitLab';
+  requires 'Alien::Meson';
+  requires 'Alien::Ninja';
+
+  # https://gitlab.com/drobilla/serd
+  # https://drobilla.net/software/serd.html
+  plugin 'Download::GitLab' => (
+    gitlab_user    => 'drobilla',
+    gitlab_project => 'serd',
+  );
+
+
+  plugin Extract => 'tar.gz';
+
+  my $build_dir = '_build';
+  build [
+    [ '%{meson}', 'setup',
+      '--prefix=%{.install.prefix}',
+      '--libdir=lib',
+      '--buildtype=release',
+      '-Ddocs=disabled', # no docs
+      $build_dir ],
+    [ '%{ninja}', qw(-C), $build_dir, "test" ],
+    [ '%{ninja}', qw(-C), $build_dir, 'install' ],
+  ];
+
+  plugin 'Gather::Dino';
+}
