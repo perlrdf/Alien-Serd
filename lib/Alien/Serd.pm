@@ -9,7 +9,7 @@ use 5.008004;
 
 =head1 NAME
 
-Alien::Serd - Find or build Serd
+Alien::Serd - Find or build Serd RDF processor
 
 =head1 SYNOPSIS
 
@@ -89,6 +89,10 @@ for the use of other modules.
 =head1 SEE ALSO
 
 =over 4
+
+=item L<Serd|https://drobilla.net/software/serd.html>
+
+Serd homepage.
 
 =item L<Alien>
 
