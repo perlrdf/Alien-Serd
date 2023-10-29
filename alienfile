@@ -3,7 +3,6 @@ use alienfile;
 plugin PkgConfig => 'serd-0';
 
 share {
-  requires 'Alien::Build::Plugin::Gather::Dino';
   requires 'Alien::Build::Plugin::Download::GitLab';
   requires 'Alien::Meson';
   requires 'Alien::Ninja';
@@ -20,15 +19,27 @@ share {
 
   my $build_dir = '_build';
   build [
-    [ '%{meson}', 'setup',
-      '--prefix=%{.install.prefix}',
-      '--libdir=lib',
-      '--buildtype=release',
-      '-Ddocs=disabled', # no docs
-      $build_dir ],
+    sub {
+      my $build = shift;
+      Alien::Build::CommandSequence->new([
+        Alien::Meson->exe, 'setup',
+          (
+            $^O ne 'MSWin32'
+            ? ( '-Ddefault_library=both', ) # both static and shared
+            : ()
+          ),
+          '--prefix=%{.install.prefix}',
+          '--libdir=lib',
+          '--buildtype=release',
+          '-Ddocs=disabled', # no docs
+          $build_dir,
+      ])->execute($build);
+    },
     [ '%{ninja}', qw(-C), $build_dir, "test" ],
     [ '%{ninja}', qw(-C), $build_dir, 'install' ],
   ];
 
-  plugin 'Gather::Dino';
+  if( $^O ne 'MSWin32' ) {
+    plugin 'Gather::IsolateDynamic';
+  }
 }
