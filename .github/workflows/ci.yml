@@ -19,6 +19,7 @@ env:
     mingw-w64-x86_64-curl
     mingw-w64-x86_64-meson
     mingw-w64-x86_64-ninja
+    mingw-w64-x86_64-pkg-config
 
 jobs:
   dist:
@@ -144,6 +145,11 @@ jobs:
         shell: bash
         run: |
           echo "ALIEN_INSTALL_TYPE=${{ matrix.alien-install-type }}" >> $GITHUB_ENV
+
+      - name: Set ALIEN_BUILD_PKG_CONFIG
+        if: runner.os == 'Windows' && matrix.dist == 'msys2'
+        run: |
+          echo "ALIEN_BUILD_PKG_CONFIG=PkgConfig::CommandLine" >> $GITHUB_ENV
 
       - name: Run tests
         env:
