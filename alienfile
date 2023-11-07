@@ -17,6 +17,7 @@ share {
 
   plugin Extract => 'tar.gz';
 
+  meta->prop->{destdir} = 1;
   my $build_dir = '_build';
   build [
     sub {
