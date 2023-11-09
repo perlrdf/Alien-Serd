@@ -2,9 +2,14 @@ use alienfile;
 
 plugin PkgConfig => 'serd-0';
 
+eval {
+  require Alien::Meson;
+  Alien::Meson->_apply_destdir_prefix_hack;
+};
+
 share {
   requires 'Alien::Build::Plugin::Download::GitLab';
-  requires 'Alien::Meson';
+  requires 'Alien::Meson' => '0.06';
   requires 'Alien::Ninja';
 
   # https://gitlab.com/drobilla/serd
