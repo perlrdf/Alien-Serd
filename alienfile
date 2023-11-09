@@ -2,10 +2,14 @@ use alienfile;
 
 plugin PkgConfig => 'serd-0';
 
+eval {
+  require Alien::Meson;
+  Alien::Meson->_apply_destdir_prefix_hack;
+};
+
 share {
-  requires 'Alien::Build::Plugin::Gather::Dino';
   requires 'Alien::Build::Plugin::Download::GitLab';
-  requires 'Alien::Meson';
+  requires 'Alien::Meson' => '0.06';
   requires 'Alien::Ninja';
 
   # https://gitlab.com/drobilla/serd
@@ -18,17 +22,30 @@ share {
 
   plugin Extract => 'tar.gz';
 
+  meta->prop->{destdir} = 1;
   my $build_dir = '_build';
   build [
-    [ '%{meson}', 'setup',
-      '--prefix=%{.install.prefix}',
-      '--libdir=lib',
-      '--buildtype=release',
-      '-Ddocs=disabled', # no docs
-      $build_dir ],
+    sub {
+      my $build = shift;
+      Alien::Build::CommandSequence->new([
+        Alien::Meson->exe, 'setup',
+          (
+            $^O ne 'MSWin32'
+            ? ( '-Ddefault_library=both', ) # both static and shared
+            : ()
+          ),
+          '--prefix=%{.install.prefix}',
+          '--libdir=lib',
+          '--buildtype=release',
+          '-Ddocs=disabled', # no docs
+          $build_dir,
+      ])->execute($build);
+    },
     [ '%{ninja}', qw(-C), $build_dir, "test" ],
     [ '%{ninja}', qw(-C), $build_dir, 'install' ],
   ];
 
-  plugin 'Gather::Dino';
+  if( $^O ne 'MSWin32' ) {
+    plugin 'Gather::IsolateDynamic';
+  }
 }

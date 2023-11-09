@@ -5,6 +5,18 @@ use warnings;
 use base qw( Alien::Base );
 use 5.008004;
 
+use File::Spec;
+use ExtUtils::PkgConfig;
+
+sub pkg_config_path {
+	my ($class) = @_;
+	if( $class->install_type eq 'share' ) {
+		return File::Spec->catfile( File::Spec->rel2abs($class->dist_dir), qw(lib pkgconfig) );
+	} else {
+		return ExtUtils::PkgConfig->variable('serd-0', 'pcfiledir');
+	}
+}
+
 1;
 
 =head1 NAME
