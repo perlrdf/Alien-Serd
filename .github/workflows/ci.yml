@@ -1,10 +1,14 @@
 name: Run Tests
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - '*'
+    tags-ignore:
+      - '*'
   pull_request:
+  create:
 
 env:
   PKG_NAME: Serd
@@ -22,44 +26,29 @@ env:
     mingw-w64-x86_64-pkg-config
 
 jobs:
-  dist:
-    name: Make distribution using Dist::Zilla
+  notify:
     runs-on: ubuntu-latest
+    continue-on-error: true
+    if: ${{ always() }}
+    steps:
+      - uses: perlrdf/devops/github-actions/irc-notifications@main
+        with:
+          target-notifications: true
+  dist:
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+    name: Make distribution
+    runs-on: ubuntu-latest
+    outputs:
+      min-perl-version: ${{ steps.build-dist.outputs.min-perl-version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Cache ~/perl5
-        uses: actions/cache@v3
+      - id: build-dist
+        uses: perlrdf/devops/github-actions/build-dist@main
         with:
-          key: ${{ runner.os }}-dist-locallib
-          path: ~/perl5
-      - name: Perl version
-        run: |
-          perl -v
-      - name: Install cpanm
-        run: |
-          curl -L https://cpanmin.us | perl - --sudo App::cpanminus
-      - name: Install local::lib
-        run: |
-          cpanm --local-lib=~/perl5 local::lib && eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
-      - name: Install Dist::Zilla
-        shell: bash
-        run: |
-          eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
-          cpanm -n Dist::Zilla
-          dzil authordeps --missing | cpanm -n
-      - name: Make distribution
-        shell: bash
-        run: |
-          eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
-          dzil build --in build-dir
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: ./build-dir
+          dist-perl-deps-develop: strict # Add modules
   test:
-    needs: dist
+    needs: [ 'dist', 'notify' ]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -156,3 +145,13 @@ jobs:
           ALIEN_BUILD_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cpanm --verbose --test-only .
+  build-status:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    if: ${{ always() }}
+    needs: test
+    steps:
+      - uses: perlrdf/devops/github-actions/irc-notifications@main
+        with:
+          target-build-status: true
+          needs: ${{ toJSON(needs) }}
