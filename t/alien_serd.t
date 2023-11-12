@@ -7,12 +7,11 @@ use File::Which;
 alien_diag 'Alien::Serd';
 alien_ok 'Alien::Serd';
 
-# NOTE Disable tool for now
-#if( which 'serdi' ) {
-#  run_ok([ qw(serdi --version) ])
-#    ->success
-#    ->out_like(qr/serdi\s+([0-9.]+)/);
-#}
+if( which 'serdi' ) {
+  run_ok([ qw(serdi -v) ])
+    ->success
+    ->out_like(qr/serdi\s+([0-9.]+)/);
+}
 
 my $xs = <<'END';
 #include "EXTERN.h"
