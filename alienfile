@@ -25,27 +25,24 @@ share {
   meta->prop->{destdir} = 1;
   my $build_dir = '_build';
   build [
-    sub {
-      my $build = shift;
-      Alien::Build::CommandSequence->new([
-        Alien::Meson->exe, 'setup',
-          (
-            $^O ne 'MSWin32'
-            ? ( '-Ddefault_library=both', ) # both static and shared
-            : ()
-          ),
-          '--prefix=%{.install.prefix}',
-          '--libdir=lib',
-          '--buildtype=release',
-          '-Ddocs=disabled', # no docs
-          $build_dir,
-      ])->execute($build);
-    },
-    [ '%{ninja}', qw(-C), $build_dir, "test" ],
-    [ '%{ninja}', qw(-C), $build_dir, 'install' ],
+    map {
+      my  $linkage = $_; (
+      sub {
+        my $build = shift;
+        Alien::Build::CommandSequence->new([
+          Alien::Meson->exe, 'setup',
+            "-Ddefault_library=$linkage",
+            '--prefix=%{.install.prefix}',
+            '--libdir=lib',
+            '--buildtype=release',
+            '-Ddocs=disabled', # no docs
+            "${build_dir}_$linkage",
+        ])->execute($build);
+      },
+      [ '%{ninja}', qw(-C), "${build_dir}_$linkage", "test" ],
+      [ '%{ninja}', qw(-C), "${build_dir}_$linkage", 'install' ],
+    ) } qw(shared static)
   ];
 
-  if( $^O ne 'MSWin32' ) {
-    plugin 'Gather::IsolateDynamic';
-  }
+  plugin 'Gather::IsolateDynamic';
 }
